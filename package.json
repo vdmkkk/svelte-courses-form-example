@@ -25,6 +25,7 @@
 	"type": "module",
 	"dependencies": {
 		"@sveltejs/adapter-node": "^5.2.2",
+		"axios": "^1.7.7",
 		"leaflet": "^1.9.4",
 		"sveaflet": "^0.0.10",
 		"zod": "^3.23.8"
