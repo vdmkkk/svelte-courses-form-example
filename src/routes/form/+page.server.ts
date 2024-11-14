@@ -1,44 +1,29 @@
-import type { Actions } from "@sveltejs/kit";
-import { fail, message, setError, superValidate } from "sveltekit-superforms";
+import type { Actions, PageServerLoad } from "./$types.js";
+
+import { superValidate, message } from "sveltekit-superforms";
 import { zod } from "sveltekit-superforms/adapters";
-import { z } from "zod";
+import { fail } from "@sveltejs/kit";
+import { schema } from "./schema.js";
 
-const colors = ["Красный", "Черный", "Белый", "Синий"];
-
-const schema = z.object({
-	name: z.string().default("Вадим"),
-	email: z.string().email().default("a@a.ru"),
-	color: z.enum(colors).array().min(1)
-});
-
-/*
-{
-    name: string,
-    email: string (validate for email)
+function join(flavours: string[]) {
+	if (flavours.length === 1) return flavours[0];
+	return `${flavours.slice(0, -1).join(", ")} and ${flavours[flavours.length - 1]}`;
 }
-*/
 
-export const load = async () => {
-	const form = await superValidate(zod(schema));
-
-	return { form };
+export const load: PageServerLoad = async () => {
+	return { form: await superValidate(zod(schema)) };
 };
 
 export const actions: Actions = {
 	default: async ({ request }) => {
 		const form = await superValidate(request, zod(schema));
 
-		console.log(form);
+		if (!form.valid) return fail(400, { form });
 
-		if (form.data.name == "Ярослав") {
-			setError(form, "name", "Плохое имя");
-			return fail(400, { form });
-		}
-
-		if (form.data.color.length == 0) {
-			setError(form, "name", "Выберите цвета");
-		}
-
-		return message(form, `Вы выбрали цвета: ${JSON.stringify(form.data)}`);
+		return message(
+			form,
+			`You ordered ${form.data.scoops} ${form.data.scoops === 1 ? "scoop" : "scoops"}
+		of ${join(form.data.flavours)}`
+		);
 	}
 };

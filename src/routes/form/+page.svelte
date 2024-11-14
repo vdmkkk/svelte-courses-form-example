@@ -1,53 +1,73 @@
 <script lang="ts">
-	import { superForm } from "sveltekit-superforms";
+	import { superForm, fileProxy, filesFieldProxy } from "sveltekit-superforms";
+	import { flavours } from "./schema.js";
+	import SuperDebug from "sveltekit-superforms";
 
 	export let data;
 
-	const colors = ["Красный", "Черный", "Белый", "Синий"];
+	const superform = superForm(data.form, {
+		resetForm: false,
+		clearOnSubmit: "none"
+	});
 
-	const {
-		form: newForm,
-		message,
-		enhance,
-		errors
-	} = superForm(data.form, { clearOnSubmit: "none", resetForm: false });
+	const { form, errors, enhance, message } = superform;
 
-	$: {
-		console.log($newForm);
-	}
+	const files = filesFieldProxy(superform, "images");
+	const { values: fileValues, valueErrors } = files;
 </script>
 
-<form method="POST" use:enhance>
-	<label for="name">Имя</label>
-	<input type="text" name="name" bind:value={$newForm.name} />
+<SuperDebug data={$form} />
 
-	<br />
-	<br />
-	<label for="email">E-mail</label>
-	<input type="email" name="email" bind:value={$newForm.email} />
+<form method="POST" enctype="multipart/form-data" use:enhance>
+	<h2>Size</h2>
 
-	<br />
-	<br />
-	<label for="colors">Цвета</label>
-	<select multiple name="colors" bind:value={$newForm.color}>
-		{#each colors as colorOption}
-			<option value={colorOption} selected={$newForm.color.includes(colorOption)}
-				>{colorOption}</option
-			>
+	<select name="scoops" bind:value={$form.scoops}>
+		{#each ["One scoop", "Two scoops", "Three scoops"] as scoop, i}
+			<option value={i + 1} selected={$form.scoops == i + 1}>{scoop}</option>
 		{/each}
 	</select>
 
+	{#if $errors.scoops}<p>{$errors.scoops}</p>{/if}
+
+	<h2>Flavours</h2>
+
+	<!-- Note that the selected attribute is required for this to work without JS -->
+	<select multiple name="flavours" bind:value={$form.flavours}>
+		{#each flavours as flavour}
+			<option value={flavour} selected={$form.flavours.includes(flavour)}>{flavour}</option>
+		{/each}
+	</select>
+
+	{#if $errors.flavours?._errors}<p>{$errors.flavours._errors}</p>{/if}
+
+	<br />
+	<br />
+
+	<label>
+		Upload files, max 100 Kb: <input
+			multiple
+			bind:files={$fileValues}
+			accept="image/png, image/jpeg"
+			name="images"
+			type="file"
+		/>
+		<ul class="invalid">
+			{#each $valueErrors as error, i}
+				{#if error}
+					<li>Image {i + 1}: {error}</li>
+				{/if}
+			{/each}
+		</ul>
+	</label>
+
 	<div><button>Submit</button></div>
 
-	{#if $errors.name}
-		<p>Ошибка в имени: {$errors.name}</p>
-	{/if}
-
-	{#if $errors.email}
-		<p>Ошибка в email: {$errors.email}</p>
-	{/if}
-
-	{#if $message}
-		<p>{$message}</p>
-	{/if}
+	{#if $message}<p>{$message}</p>{/if}
 </form>
+
+<style>
+	.info {
+		border-top: 1px solid gray;
+		margin-top: 4rem;
+	}
+</style>
